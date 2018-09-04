@@ -195,11 +195,24 @@
         else {
             var firstRow = undefined
 
+            var titlePropertyDropdownText = null
+            if (this.propertyDefinition.titlePropertyDropdownText === true) {
+                for (var index in this.propertyDefinition.itemProperties) {
+                    if (this.propertyDefinition.itemProperties[index].property === titleProperty) {
+                        titlePropertyDropdownText = this.propertyDefinition.itemProperties[index]
+                        break
+                    }
+                }
+            }
+
             for (var key in items) {
                 var item = items[key],
                     itemInspectorValue = this.addKeyProperty(key, item),
-                    itemText = item[titleProperty],
-                    row = this.buildTableRow(itemText, 'rowlink')
+                    itemText = item[titleProperty]
+                if (titlePropertyDropdownText) {
+                    itemText = titlePropertyDropdownText.options[item[titleProperty]]
+                }
+                var row = this.buildTableRow(itemText, 'rowlink')
 
                 row.setAttribute('data-inspector-values', JSON.stringify(itemInspectorValue))
                 tbody.appendChild(row)
@@ -352,6 +365,13 @@
 
         if (property !== this.propertyDefinition.titleProperty) {
             return
+        }
+
+        if (this.propertyDefinition.titlePropertyDropdownText === true) {
+            var propertyCell = this.popup.querySelector('table.inspector-fields tr[data-property="' + property + '"] td')
+            if ($.oc.foundation.element.hasClass(propertyCell, 'dropdown')) {
+                value = propertyCell.querySelector('select option[value="' + value + '"]').textContent
+            }
         }
 
         value = $.trim(value)
