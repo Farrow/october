@@ -212,11 +212,32 @@
 
         table.appendChild(tbody)
 
+        this.refreshSortable()
+
         if (firstRow !== undefined) {
             this.selectRow(firstRow, true)
         }
 
         this.updateScrollpads()
+    }
+
+    ObjectListEditor.prototype.refreshSortable = function() {
+        if (this.propertyDefinition.sortable === true) {
+            var $tbody = $(this.getTableBody());
+            if ($tbody.data('oc.sortable')) {
+                // sortable already setup
+                $tbody.sortable('refresh');
+            } else {
+                // make new sortable
+                var placeholder = document.createElement('div');
+                $.oc.foundation.element.addClass(placeholder, 'objectlist_placeholder')
+                $tbody.sortable({
+                    containerSelector: 'tbody',
+                    itemSelector:      'tr.rowlink',
+                    placeholder:       placeholder
+                });
+            }
+        }
     }
 
     ObjectListEditor.prototype.buildEmptyRow = function() {
@@ -392,6 +413,8 @@
         row.setAttribute('data-inspector-values', JSON.stringify(data))
         tbody.appendChild(row)
 
+        this.refreshSortable()
+
         this.selectRow(row, true)
 
         this.removeEmptyRow()
@@ -420,6 +443,8 @@
         else {
             tbody.appendChild(this.buildEmptyRow())
         }
+
+        this.refreshSortable()
 
         this.updateScrollpads()
     }
