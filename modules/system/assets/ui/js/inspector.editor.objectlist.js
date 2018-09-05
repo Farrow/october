@@ -195,14 +195,10 @@
         else {
             var firstRow = undefined
 
-            var titlePropertyDropdownText = null
-            if (this.propertyDefinition.titlePropertyDropdownText === true) {
-                for (var index in this.propertyDefinition.itemProperties) {
-                    if (this.propertyDefinition.itemProperties[index].property === titleProperty) {
-                        titlePropertyDropdownText = this.propertyDefinition.itemProperties[index]
-                        break
-                    }
-                }
+            var titlePropertyDropdownText = this.propertyDefinition.titlePropertyDropdownText
+            if (titlePropertyDropdownText === true) {
+                var titlePropertyItem = this.getItemProperty(titleProperty)
+                titlePropertyDropdownText = titlePropertyItem
             }
 
             for (var key in items) {
@@ -210,7 +206,15 @@
                     itemInspectorValue = this.addKeyProperty(key, item),
                     itemText = item[titleProperty]
                 if (titlePropertyDropdownText) {
-                    itemText = titlePropertyDropdownText.options[item[titleProperty]]
+                    if (titlePropertyDropdownText.options) {
+                        // static options
+                        itemText = titlePropertyDropdownText.options[item[titleProperty]]
+                    } else if (titlePropertyDropdownText.loadOptions) {
+                        // dynamic options
+                        itemText = titlePropertyDropdownText.loadOptions[item[titleProperty]]
+                    } else {
+                        itemText = 'Unknown'
+                    }
                 }
                 var row = this.buildTableRow(itemText, 'rowlink')
 
@@ -356,6 +360,15 @@
         row.setAttribute('data-inspector-values', JSON.stringify(data))
     }
 
+    ObjectListEditor.prototype.getItemProperty = function(property) {
+        for (var index in this.propertyDefinition.itemProperties) {
+            if (this.propertyDefinition.itemProperties[index].property === property) {
+                return this.propertyDefinition.itemProperties[index]
+            }
+        }
+        return null
+    }
+
     ObjectListEditor.prototype.updateRowText = function(property, value) {
         var selectedRow = this.getSelectedRow()
         
@@ -363,14 +376,35 @@
             throw new Exception('A row is not found for the updated data')
         }
 
+        var titlePropertyDropdownText = this.propertyDefinition.titlePropertyDropdownText
+
+        if (property !== this.propertyDefinition.titleProperty) {
+            // Check whether this property is one that the titleProperty depends on and hence
+            // may have caused an update to its value
+            var titlePropertyItem = this.getItemProperty(this.propertyDefinition.titleProperty)
+            if (titlePropertyItem.depends.length > 0) {
+                for (var index = 0; index < titlePropertyItem.depends.length; index++) {
+                    if (titlePropertyItem.depends[index] === property) {
+                        property = this.propertyDefinition.titleProperty
+                        break
+                    }
+                }
+            }
+        }
+
         if (property !== this.propertyDefinition.titleProperty) {
             return
         }
 
-        if (this.propertyDefinition.titlePropertyDropdownText === true) {
+        if (titlePropertyDropdownText === true) {
             var propertyCell = this.popup.querySelector('table.inspector-fields tr[data-property="' + property + '"] td')
             if ($.oc.foundation.element.hasClass(propertyCell, 'dropdown')) {
-                value = propertyCell.querySelector('select option[value="' + value + '"]').textContent
+                var selectedOption = propertyCell.querySelector('select option[value="' + value + '"]');
+                if (selectedOption === null) {
+                    value = 'Please select'
+                } else {
+                    value = selectedOption.textContent
+                }
             }
         }
 
